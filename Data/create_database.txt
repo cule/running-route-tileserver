@@ -1,0 +1,9 @@
+createdb gps_routes
+psql gps_routes
+CREATE TABLE gps_routes(id serial);
+SELECT AddGeometryColumn('gps_routes', 'the_web_geom', 3857, 'LINESTRING', 2);
+COPY gps_routes FROM 'gps_routes_sample_parsed.tab';
+CREATE TABLE gps_routes_simplified AS SELECT id, ST_Simplify(the_web_geom, 16.0) AS the_web_geom FROM gps_routes;
+CREATE INDEX gps_routes_simplified_gix ON gps_routes_simplified USING GIST (the_web_geom);
+DROP TABLE gps_routes;
+VACUUM ANALYZE;

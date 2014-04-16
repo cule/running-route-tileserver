@@ -1,5 +1,5 @@
-Tutorial for creating a tileserver from GPS running routes
-==========================================================
+Create a Tileserver from Running Routes
+=======================================
 
 ###Introduction
 

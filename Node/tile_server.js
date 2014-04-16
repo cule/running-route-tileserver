@@ -1,10 +1,8 @@
 ﻿var mapnik = require('mapnik');
 var mercator = require('./sphericalmercator');
 var url = require('url');
-var fs = require('fs');
 var http = require('http');
 var parseQueryParams = require('./tile.js').parseQueryParams;
-var path = require('path');
 var TMS_SCHEME = false;
 
 // the db connection info

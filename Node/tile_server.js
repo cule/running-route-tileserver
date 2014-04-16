@@ -1,21 +1,21 @@
-﻿var mapnik = require('mapnik');
-var mercator = require('./sphericalmercator');
-var url = require('url');
-var http = require('http');
-var parseQueryParams = require('./tile.js').parseQueryParams;
-var TMS_SCHEME = false;
+﻿var mapnik = require('mapnik'),
+    mercator = require('./sphericalmercator'),
+    url = require('url'),
+    http = require('http'),
+    parseQueryParams = require('./tile.js').parseQueryParams,
+    TMS_SCHEME = false;
 
 // the db connection info
 var postgis_settings = {
     'host': 'localhost',
-    'dbname': <database_name>,
-    'table': <table_with_geometry_column>,
-    'user': <user_name>,
-    'password': <password>,
+    'dbname': 'gps_routes',
+    'table': 'gps_routes_simplified',
+    'user': 'user_name',
+    'password': 'password',
     'type': 'postgis',
     'initial_size': '10',
     'geometry_field': 'the_web_geom',
-    'srid': 3857,
+    'srid': 3857
 };
 
 function createStyles() {

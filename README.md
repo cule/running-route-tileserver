@@ -3,13 +3,11 @@ Running Route Tile Server
 
 ###Introduction
 
-Nautilytics was recently approached by WalkJogRun, one of the leaders in iOS GPS running applications, to create a visualization of the most popular public running routes in their global network.
-We didn’t want to simply create pieces of art from the three plus years of running routes;
-we wanted to make the routes as dynamic as possible by creating overlays to add the popular routes on top of a Google Map.
-The result of the project was to give users of the application a better understanding of where people were running and where they may want to run in a new city.
-In theory, if many runners are running the same route then it may be safer, more scenic, and less polluted.
+There are many popular mobile running applications available these days that let users track their running, walking, or biking routes with
+GPS (for example [WalkJogRun](http://www.walkjogrun.net/), so we wanted to provide users of these applications with a step-by-step tutorial to taking their GPS data
+and overlaying it on a [slippy](http://wiki.openstreetmap.org/wiki/Slippy_Map) Google Map.
 
-###Examples
+###Live Examples
 
 [Nautilytics Web Demo](http://nautilytics.azurewebsites.net/WJR-Popular-Routes/)
 
@@ -17,8 +15,8 @@ In theory, if many runners are running the same route then it may be safer, more
 
 ###Tile Server
 
-The approach we took to creating the tile server was to spin up a new small Ubuntu LTS virtual machine using Windows Azure –
-we chose Azure because of their great [BizSpark](http://www.microsoft.com/bizspark/) program for startups. After some deliberation,
+The approach we took to creating the tile server which will eventually produce the map tiles was to spin up a new small Ubuntu LTS virtual machine using Windows Azure –
+we chose Azure because of their great [BizSpark](http://www.microsoft.com/bizspark/) program for start-ups. After some deliberation,
 we decided our best technology stack for this project was the [PostGIS extension](http://postgis.net/) of PostgreSQL, node.js, and Mapnik.
 [node.js](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
 and [PostgreSQL](http://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS21UbuntuPGSQL93Apt)
@@ -68,14 +66,13 @@ Known values for OPTION are:
 ####Setting up the Backend
 
 We're going to walk through setting up a PostgreSQL/PostGIS database to hold the GPS routes as LineStrings. In our situation,
-we received a tab delimited file of encoded polylines, so we'll start from there.
+we started with a tab delimited file of encoded polylines, so we'll work from there - but this is easy to do with GPS routes in any sort of format.
 
-Using polyline_to_linestring.py and specifically the great [Shapely](https://pypi.python.org/pypi/Shapely) Python library for manipulating geometry objects,
+Using a short Python script ([polyline_to_linestring.py](https://github.com/nautilytics/running-route-tileserver/blob/master/Data/polyline_to_linestring.py)) and specifically the great [Shapely](https://pypi.python.org/pypi/Shapely) Python library for manipulating geometry objects,
 we were able to transform the encoded polylines into well-known-text (WKT) representations of [Spherical Mercator Projection](http://alastaira.wordpress.com/2011/01/23/the-google-maps-bing-maps-spherical-mercator-projection/)
-LineStrings for easy copying into the database.
+SRID:3857 LineStrings for easy copying into the database.
 
-Once we have transformed the data and written the results to gps_routes_sample_parsed.tab,
-we can now COPY the tab delimited file into our database.
+Once we have transformed the data and written the results to gps_routes_sample_parsed.tab, we can now COPY the tab delimited file into our database.
 
 ```
 [nautilytics]$ createdb gps_routes // create a database named gps_routes
@@ -83,7 +80,7 @@ we can now COPY the tab delimited file into our database.
 gps_routes=# CREATE EXTENSION POSTGIS; // add PostGIS functionality to our newly created database
 gps_routes=# CREATE TABLE gps_routes(id serial); // create a table with a single id column
 gps_routes=# SELECT AddGeometryColumn('gps_routes', 'the_web_geom', 3857, 'LINESTRING', 2);  // append a Geometry SRID: 3857 column
-gps_routes=# COPY gps_routes FROM 'gps_routes_sample_parsed.tab';  // use the blazing fast COPY command to insert the data into the table
+gps_routes=# COPY gps_routes FROM '/directory/to_tab_delimited_file/gps_routes_sample_parsed.tab';
 gps_routes=# CREATE INDEX gps_routes_gix ON gps_routes USING GIST (the_web_geom); // create an index on the_web_geom column
 ```
 
@@ -105,7 +102,7 @@ This can be tricky, so we'll outline how we've been successful with this install
 [nautilytics]$ sudo npm install mapnik
 ```
 
-Test to see if the installation is complete.
+Confirm mapnik is installed correctly:
 
 ```
 [nautilytics]$ node
@@ -149,7 +146,7 @@ undefined
 > process.exit();
 ```
 
-We now need to create a node.js script to query the database and return those LineStrings within the bounds of the client 256x256 requested tile.
+We now need to create a node.js script to query the database and return those LineStrings within the [bounds](http://postgis.refractions.net/docs/ST_Envelope.html) of the client 256x256 requested tile.
 Fortunately, node-mapnik makes this process quite seamless.
 
 ```
@@ -235,7 +232,7 @@ http.createServer(function (req, res) {
 }).listen(port);
 ```
 
-To run the script in the background and test to see if it is working:
+Run the script in the background and test to see if it is working:
 
 ```
 [nautilytics]$ nohup node tile_server.js &
@@ -315,7 +312,7 @@ caching the tile images and is a breeze to set up.
 ####iOS Map Tiles
 
 We’re not going to walk through the intricacies of getting the map tiles working with Google Maps on iOS,
-but if you’re at that step check out [this article](http://www.viggiosoft.com/blog/blog/2014/01/21/custom-and-offline-maps-using-overlay-tiles/) on iOS overlay tiles for assistance.
+but if you’re at that step check out [this article](http://www.viggiosoft.com/blog/blog/2014/01/21/custom-and-offline-maps-using-overlay-tiles/) on iOS overlay tiles.
 
 
 LICENSE

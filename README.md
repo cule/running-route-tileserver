@@ -9,6 +9,11 @@ we wanted to make the routes as dynamic as possible by creating overlays to add 
 The result of the project was to give users of the application a better understanding of where people were running and where they may want to run in a new city.
 In theory, if many runners are running the same route then it may be safer, more scenic, and less polluted.
 
+###Examples
+
+[Nautilytics Web Demo](http://nautilytics.azurewebsites.net/WJR-Popular-Routes/)
+[WalkJogRun iOS App](https://itunes.apple.com/app/walkjogrun-gps-running-routes/id312197907)
+
 ###Tileserver
 
 The approach we took to creating the tileserver was to spin up a new small Ubuntu LTS virtual machine using Windows Azure –

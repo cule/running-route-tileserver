@@ -1,5 +1,5 @@
-Create a Tile Server from Running Routes
-=======================================
+Running Route Tile Server
+=========================
 
 ###Introduction
 

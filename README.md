@@ -13,7 +13,7 @@ In theory, if many runners are running the same route then it may be safer, more
 
 [Nautilytics Web Demo](http://nautilytics.azurewebsites.net/WJR-Popular-Routes/)
 
-[WalkJogRun iOS App](https://itunes.apple.com/app/walkjogrun-gps-running-routes/id312197907)
+[WalkJogRun iOS App](http://go.appapult.com/p)
 
 ###Tile Server
 

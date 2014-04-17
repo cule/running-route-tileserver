@@ -29,17 +29,17 @@ were easy to get up and running correctly; Mapnik on the other hand was a bit tr
 We’ve had the best success running the v.2.3x version of [mapnik](https://github.com/mapnik/mapnik/wiki/Mapnik-Installation):
 
 ```
-sudo apt-get install -y python-software-properties
-sudo add-apt-repository ppa:mapnik/nightly-2.3
-sudo apt-get update
-sudo apt-get install libmapnik libmapnik-dev mapnik-utils python-mapnik
-sudo apt-get install mapnik-input-plugin-postgis
+[nautilytics]$ sudo apt-get install -y python-software-properties
+[nautilytics]$ sudo add-apt-repository ppa:mapnik/nightly-2.3
+[nautilytics]$ sudo apt-get update
+[nautilytics]$ sudo apt-get install libmapnik libmapnik-dev mapnik-utils python-mapnik
+[nautilytics]$ sudo apt-get install mapnik-input-plugin-postgis
 ```
 
 To ensure mapnik installed correctly:
 
 ```
-mapnik-config
+[nautilytics]$ mapnik-config
 Usage: mapnik-config [OPTION]
 
 Known values for OPTION are:
@@ -78,21 +78,21 @@ Once we have transformed the data and written the results to gps_routes_sample_p
 we can now COPY the tab delimited file into our database.
 
 ```
-createdb gps_routes // create a database named gps_routes
-psql gps_routes // enter the database
-CREATE EXTENSION POSTGIS; // add PostGIS functionality to our newly created database
-CREATE TABLE gps_routes(id serial); // create a table with a single id column
-SELECT AddGeometryColumn('gps_routes', 'the_web_geom', 3857, 'LINESTRING', 2);  // append a Geometry SRID: 3857 column
-COPY gps_routes FROM 'gps_routes_sample_parsed.tab';  // use the blazing fast COPY command to insert the data into the table
-CREATE INDEX gps_routes_gix ON gps_routes USING GIST (the_web_geom); // create an index on the_web_geom column
+[nautilytics]$ createdb gps_routes // create a database named gps_routes
+[nautilytics]$ psql gps_routes // enter the database
+gps_routes=# CREATE EXTENSION POSTGIS; // add PostGIS functionality to our newly created database
+gps_routes=# CREATE TABLE gps_routes(id serial); // create a table with a single id column
+gps_routes=# SELECT AddGeometryColumn('gps_routes', 'the_web_geom', 3857, 'LINESTRING', 2);  // append a Geometry SRID: 3857 column
+gps_routes=# COPY gps_routes FROM 'gps_routes_sample_parsed.tab';  // use the blazing fast COPY command to insert the data into the table
+gps_routes=# CREATE INDEX gps_routes_gix ON gps_routes USING GIST (the_web_geom); // create an index on the_web_geom column
 ```
 
 One could stop here and add simplification to the database settings in the node-mapnik script, but for faster drawing on the server side
 we created a new table with the routes [simplified](http://www.postgis.org/docs/ST_Simplify.html).
 
 ```
-CREATE TABLE gps_routes_simplified AS SELECT id, ST_Simplify(the_web_geom, 16.0) AS the_web_geom FROM gps_routes;
-CREATE INDEX gps_routes_simplified_gix ON gps_routes_simplified USING GIST (the_web_geom);
+gps_routes=# CREATE TABLE gps_routes_simplified AS SELECT id, ST_Simplify(the_web_geom, 16.0) AS the_web_geom FROM gps_routes;
+gps_routes=# CREATE INDEX gps_routes_simplified_gix ON gps_routes_simplified USING GIST (the_web_geom);
 ```
 
 For the node.js script to serve up the requested tiles, we need to use the package manager [npm](https://www.npmjs.org/) to
@@ -100,15 +100,15 @@ install the node module that contains the bindings from mapnik to node - [node-m
 This can be tricky, so we'll outline how we've been successful with this installation.
 
 ```
-sudo apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev zlib1g-dev libio-pty-perl libssl-dev pkg-config
-cd /directory/to_node_script
-sudo npm install mapnik
+[nautilytics]$ sudo apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev zlib1g-dev libio-pty-perl libssl-dev pkg-config
+[nautilytics]$ cd /directory/to_node_script
+[nautilytics]$ sudo npm install mapnik
 ```
 
 Test to see if the installation is complete.
 
 ```
-node
+[nautilytics]$ node
 > var mapnik = require('mapnik');
 undefined
 > mapnik
@@ -238,8 +238,8 @@ http.createServer(function (req, res) {
 To run the script in the background and test to see if it is working:
 
 ```
-nohup node tile_server.js &
-curl localhost:8000/z/x/y.png
+[nautilytics]$ nohup node tile_server.js &
+[nautilytics]$ curl localhost:8000/z/x/y.png
 'no x,y,z provided'
 ```
 
@@ -249,9 +249,10 @@ and [forever](https://github.com/nodejitsu/forever), a tool for ensuring that a 
 didn't play nice with Upstart. We did discover that node on its own integrated very nicely with Upstart.
 
 ```
-cd /etc/init
-sudo nano tile_start.conf
+[nautilytics]$ cd /etc/init
+[nautilytics]$ sudo nano tile_start.conf
 
+/* Begin Text of Upstart Script */
 start on runlevel [2345]
 stop on shutdown
 
@@ -260,14 +261,12 @@ respawn
 script
     exec sudo -u nobody nodejs /directory/to_node_script/tile_server.js 2>&1 >> /tmp/tile_server.log
 end script
-
-sudo start tile_server // start the service
-ps aux | grep tile_server // show that process is running
+/* End Text of Upstart Script */
 ```
 
 ####Setting up the Frontend
 
-Given the seamless integration between wax and mapnik, the frontend was a breeze to set up.
+Given the seamless integration between [wax](http://www.mapbox.com/wax/) and mapnik, the frontend was a breeze to set up.
 
 ```
 <html>

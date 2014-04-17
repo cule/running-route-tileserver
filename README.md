@@ -100,8 +100,7 @@ install the node module that contains the bindings from mapnik to node - [node-m
 This can be tricky, so we'll outline how we've been successful with this installation.
 
 ```
-sudo apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev\
-zlib1g-dev libio-pty-perl libssl-dev pkg-config
+sudo apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev zlib1g-dev libio-pty-perl libssl-dev pkg-config
 cd /directory/to_node_script
 sudo npm install mapnik
 ```

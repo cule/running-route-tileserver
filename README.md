@@ -1,4 +1,4 @@
-Create a Tileserver from Running Routes
+Create a Tile Server from Running Routes
 =======================================
 
 ###Introduction
@@ -15,11 +15,11 @@ In theory, if many runners are running the same route then it may be safer, more
 
 [WalkJogRun iOS App](https://itunes.apple.com/app/walkjogrun-gps-running-routes/id312197907)
 
-###Tileserver
+###Tile Server
 
-The approach we took to creating the tileserver was to spin up a new small Ubuntu LTS virtual machine using Windows Azure –
-we chose Azure because of their great BizSpark program for startups. After some deliberation and googling,
-we decided our best technology stack for this project was the PostGIS extension of PostgreSQL, node.js, and Mapnik.
+The approach we took to creating the tile server was to spin up a new small Ubuntu LTS virtual machine using Windows Azure –
+we chose Azure because of their great [BizSpark](http://www.microsoft.com/bizspark/) program for startups. After some deliberation,
+we decided our best technology stack for this project was the [PostGIS extension](http://postgis.net/) of PostgreSQL, node.js, and Mapnik.
 [node.js](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
 and [PostgreSQL](http://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS21UbuntuPGSQL93Apt)
 were easy to get up and running correctly; Mapnik on the other hand was a bit trickier, so we’ll outline the steps.
@@ -172,10 +172,13 @@ var postgis_settings = {
     'type': 'postgis',
     'initial_size': '10',
     'geometry_field': 'the_web_geom',
+    //'simplify_geometries' = true, // not needed if using simplified table
+    //'extent' = '-166939.292534432, 893098.25883008, 35265.2514503532, 1006172.1881666',
     'srid': 3857
 };
 
 function createStyles() {
+    // Create an XML style sheet for styling the LineStrings
     var s = '<?xml version="1.0" encoding="utf-8"?>';
     s += '<!DOCTYPE Map [';
     s += '    ]>';
@@ -202,16 +205,16 @@ http.createServer(function (req, res) {
                     parseInt(params.y),
                     parseInt(params.z), false);
 
-                // Create a new layer with the running routes
+                // Create a new mapnik layer with the running routes
                 var layer = new mapnik.Layer('tile', mercator.proj4);
                 layer.datasource = new mapnik.Datasource(postgis_settings);
                 layer.styles = ['line'];
 
-                // Create style filters
+                // Initialize line styles
                 map.fromStringSync(createStyles());
 
-                // Draw the map as a PNG image
-                map.bufferSize = 64; // how much edging is provided for each tile rendered
+                // Draw the map tile as a 256x256 PNG image and return to client
+                map.bufferSize = 64; // edging for each tile rendered
                 map.add_layer(layer);
                 map.extent = bbox;
                 var im = new mapnik.Image(map.width, map.height);
@@ -233,9 +236,39 @@ http.createServer(function (req, res) {
 }).listen(port);
 ```
 
+To run the script in the background and test to see if it is working:
+
+```
+nohup node tile_server.js &
+curl localhost:8000/z/x/y.png
+'no x,y,z provided'
+```
+
+One final obstacle we had to navigate was keeping the node script up and running when the servers inevitably rebooted for
+scheduled system maintenance. We initially tried this with [Upstart](http://upstart.ubuntu.com/), an event-based init daemon,
+and [forever](https://github.com/nodejitsu/forever), a tool for ensuring that a node script runs continuously, but found that forever
+didn't play nice with Upstart. We did discover that node on its own integrated very nicely with Upstart.
+
+```
+cd /etc/init
+sudo nano tile_start.conf
+
+start on runlevel [2345]
+stop on shutdown
+
+respawn
+
+script
+    exec sudo -u nobody nodejs /directory/to_node_script/tile_server.js 2>&1 >> /tmp/tile_server.log
+end script
+
+sudo start tile_server // start the service
+ps aux | grep tile_server // show that process is running
+```
+
 ####Setting up the Frontend
 
-This is the easy part!
+Given the seamless integration between wax and mapnik, the frontend was a breeze to set up.
 
 ```
 <html>
@@ -261,7 +294,7 @@ This is the easy part!
         tiles: ['localhost:8000/{z}/{x}/{y}.png'] // make sure port lines up with port in node
     };
     var map = new google.maps.Map(document.getElementById('map'), {
-        center: new google.maps.LatLng(51.5072, -0.1275), // London
+        center: new google.maps.LatLng(42.3133735, -71.0571571), // Boston
         zoom: 10,
         zoomControlOptions: {
             style: google.maps.ZoomControlStyle.SMALL
@@ -275,12 +308,10 @@ This is the easy part!
 
 ####Caching the Tiles
 
-One of the keys to making this simple tileserver efficient and fast for the many thousands of users of WalkJogRun,
-both via iOS and the web, is the use of a content delivery network (CDN) for caching the tiles on servers around the world.
+One of the keys to making this simple tile server efficient and fast for both iOS and the web, is the use of a content delivery network (CDN) for caching the tiles.
 For the technically savvy reader, this content delivery can be done by setting up [Varnish](https://www.varnish-cache.org/) on your server,
 but for those looking for as little overhead as possible, check out [Fastly](http://www.fastly.com/). Fastly handles all the heavy lifting of
-caching the tile images on their vast network of global servers for as little as $50/month. It is extremely easy to
-set up and their customer service typically responds in less than two hours.
+caching the tile images and is a breeze to set up.
 
 
 ####iOS Map Tiles

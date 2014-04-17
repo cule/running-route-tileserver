@@ -4,7 +4,7 @@ Running Route Tile Server
 ###Introduction
 
 There are many popular mobile running applications available these days that let users track their running, walking, or biking routes with
-GPS (for example [WalkJogRun](http://www.walkjogrun.net/), so we wanted to provide users of these applications with a step-by-step tutorial to taking their GPS data
+GPS (for example [WalkJogRun](http://www.walkjogrun.net/)), so we wanted to provide users of these applications with a step-by-step tutorial to taking their GPS data
 and overlaying it on a [slippy](http://wiki.openstreetmap.org/wiki/Slippy_Map) Google Map.
 
 ###Live Examples

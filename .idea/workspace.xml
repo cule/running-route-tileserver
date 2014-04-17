@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="8a96d686-5a8c-4ae3-a73b-f704c59de7c9" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="running-route-tileserver.iws" />
@@ -51,7 +50,7 @@
       <file leaf-file-name=".gitignore" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/.gitignore">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="26" column="6" selection-start="542" selection-end="542" vertical-scroll-proportion="0.5019305" vertical-offset="0" max-vertical-offset="777">
+            <state line="26" column="7" selection-start="543" selection-end="543" vertical-scroll-proportion="0.5019305" vertical-offset="0" max-vertical-offset="777">
               <folding />
             </state>
           </provider>
@@ -560,7 +559,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="26" column="6" selection-start="542" selection-end="542" vertical-scroll-proportion="0.5019305" vertical-offset="0" max-vertical-offset="777">
+        <state line="26" column="7" selection-start="543" selection-end="543" vertical-scroll-proportion="0.5019305" vertical-offset="0" max-vertical-offset="777">
           <folding />
         </state>
       </provider>

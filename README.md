@@ -301,14 +301,6 @@ Given the seamless integration between [wax](http://www.mapbox.com/wax/) and map
 </html>
 ```
 
-####Caching the Tiles
-
-One of the keys to making this simple tile server efficient and fast for both iOS and the web, is the use of a content delivery network (CDN) for caching the tiles.
-For the technically savvy reader, this content delivery can be done by setting up [Varnish](https://www.varnish-cache.org/) on your server,
-but for those looking for as little overhead as possible, check out [Fastly](http://www.fastly.com/). Fastly handles all the heavy lifting of
-caching the tile images and is a breeze to set up.
-
-
 ####iOS Map Tiles
 
 We’re not going to walk through the intricacies of getting the map tiles working with Google Maps on iOS,

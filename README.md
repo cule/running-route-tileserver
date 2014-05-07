@@ -150,9 +150,9 @@ undefined
 > process.exit();
 ```
 
-We now need to create a node.js script to query the database and return those LineStrings within the [bounds](http://postgis.refractions.net/docs/ST_Envelope.html) of the client 256x256 requested tile.
+We then created a node script to query the database and return those LineStrings within the [bounds](http://postgis.refractions.net/docs/ST_Envelope.html) of the 256x256 requested tile.
 Fortunately, ```node-mapnik```, ```express```, and ```bluebird``` make this process quite seamless and asynchronous. We use ```app.js``` as a router that handles all client requests and then
- sends those requests to ```tile_server.js``` which serves up the PNG tiles back to the client.
+ sends those requests to ```tile_server.js``` which serves up the PNG tiles asynchronously back to the client.
 
 tile_server.js
 ```
@@ -187,7 +187,6 @@ var createPostGISConnectionDetails = function () {
 
 router.get('/:z/:x/:y', function (req, res) {
 
-    // Get zoom, x and y coordinates from google maps
     var z = req.params.z;
     var x = req.params.x;
     var y = req.params.y;
@@ -199,7 +198,7 @@ router.get('/:z/:x/:y', function (req, res) {
     var map = new mapnik.Map(256, 256, mercator.proj4);
     map.bufferSize = 64; // amount of edging provided for each tile rendered
 
-    // Draw layers asynchronously to avoid upwards of 100ms blocking
+    // Draw layers asynchronously to avoid blocking
     map.fromStringAsync(createStyles()).then(function (map) {
         map.extent = bbox;
 
@@ -208,8 +207,7 @@ router.get('/:z/:x/:y', function (req, res) {
         layer.datasource = new mapnik.Datasource(new createPostGISConnectionDetails());
         layer.styles = ['line'];
         map.add_layer(layer);
-
-        // Draw single layer as PNG
+        
         return map;
     }).then(function (map) {
         var im = new mapnik.Image(map.width, map.height);
@@ -227,11 +225,11 @@ router.get('/:z/:x/:y', function (req, res) {
 module.exports = router;
 ```
 
-Run the script in the background and test to see if it is working:
+Run ```app.js``` in the background to see if it is working:
 
 ```
 [nautilytics]$ nohup node app.js &
-[nautilytics]$ curl localhost:8000/z/x/y.png
+[nautilytics]$ curl localhost:8000/v1/tiles/z/x/y.png
 'no x,y,z provided'
 ```
 

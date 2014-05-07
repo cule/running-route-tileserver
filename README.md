@@ -92,17 +92,21 @@ gps_routes=# CREATE TABLE gps_routes_simplified AS SELECT id, ST_Simplify(the_we
 gps_routes=# CREATE INDEX gps_routes_simplified_gix ON gps_routes_simplified USING GIST (the_web_geom);
 ```
 
-For the node.js script to serve up the requested tiles, we need to use the package manager [npm](https://www.npmjs.org/) to
+For the node.js script to serve up the requested tiles, we use the package manager [npm](https://www.npmjs.org/) to
 install the node module that contains the bindings from mapnik to node - [node-mapnik](https://github.com/mapnik/node-mapnik).
 This can be tricky, so we'll outline how we've been successful with this installation.
 
 ```
-[nautilytics]$ sudo apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev zlib1g-dev libio-pty-perl libssl-dev pkg-config
-[nautilytics]$ cd /directory/to_node_script
-[nautilytics]$ sudo npm install mapnik
+[nautilytics]$ apt-get install automake libtool g++ protobuf-compiler libprotobuf-dev libboost-dev libutempter-dev libncurses5-dev zlib1g-dev libio-pty-perl libssl-dev pkg-config
 ```
 
-Confirm mapnik is installed correctly:
+Once the dependencies are in place with our handy-dandy ```package.json``` file, we can simply run the below code to install all the needed node modules:
+```
+[nautilytics]$ cd /directory/to_node_script
+[nautilytics]$ npm install
+```
+
+Confirm node-mapnik is installed correctly:
 
 ```
 [nautilytics]$ node
@@ -147,34 +151,22 @@ undefined
 ```
 
 We now need to create a node.js script to query the database and return those LineStrings within the [bounds](http://postgis.refractions.net/docs/ST_Envelope.html) of the client 256x256 requested tile.
-Fortunately, node-mapnik makes this process quite seamless.
+Fortunately, ```node-mapnik```, ```express```, and ```bluebird``` make this process quite seamless and asynchronous. We use ```app.js``` as a router that handles all client requests and then
+ sends those requests to ```tile_server.js``` which serves up the PNG tiles back to the client.
 
+tile_server.js
 ```
-var mapnik = require('mapnik'),
-    mercator = require('./sphericalmercator'),
-    url = require('url'),
-    http = require('http'),
-    parseQueryParams = require('./tile.js').parseQueryParams,
-    TMS_SCHEME = false,
-    port = 8000;
+var config = require('../config');
+var _ = require('lodash');
+var Promise = require('bluebird');
+var router = require('express').Router();
+var mercator = require('./sphericalmercator');
 
-// the db connection info
-var postgis_settings = {
-    'host': 'localhost',
-    'dbname': 'gps_routes',
-    'table': 'gps_routes_simplified',
-    'user': 'user_name',
-    'password': 'password',
-    'type': 'postgis',
-    'initial_size': '10',
-    'geometry_field': 'the_web_geom',
-    //'simplify_geometries' = true, // not needed if using simplified table
-    //'extent' = '-166939.292534432, 893098.25883008, 35265.2514503532, 1006172.1881666',
-    'srid': 3857
-};
+var mapnik = Promise.promisifyAll(require('mapnik'));
+Promise.promisifyAll(mapnik.Map.prototype);
+Promise.promisifyAll(mapnik.Image.prototype);
 
 function createStyles() {
-    // Create an XML style sheet for styling the LineStrings
     var s = '<?xml version="1.0" encoding="utf-8"?>';
     s += '<!DOCTYPE Map [';
     s += '    ]>';
@@ -188,54 +180,57 @@ function createStyles() {
     return s;
 }
 
-http.createServer(function (req, res) {
+var createPostGISConnectionDetails = function () {
+    return _.defaults({
+    }, config.postGIS);
+};
 
-    parseQueryParams(req, TMS_SCHEME, function (err, params) {
-        if (err) {
-            res.writeHead(500, {'Content-Type': 'text/plain'});
-            res.end(err.message);
-        } else {
-            try {
-                var map = new mapnik.Map(256, 256, mercator.proj4);
-                var bbox = mercator.xyz_to_envelope(parseInt(params.x),
-                    parseInt(params.y),
-                    parseInt(params.z), false);
+router.get('/:z/:x/:y', function (req, res) {
 
-                // Create a new mapnik layer with the running routes
-                var layer = new mapnik.Layer('tile', mercator.proj4);
-                layer.datasource = new mapnik.Datasource(postgis_settings);
-                layer.styles = ['line'];
+    // Get zoom, x and y coordinates from google maps
+    var z = req.params.z;
+    var x = req.params.x;
+    var y = req.params.y;
 
-                // Initialize line styles
-                map.fromStringSync(createStyles());
+    // Create a bounding box from the map parameters
+    var bbox = mercator.xyz_to_envelope(parseInt(x), parseInt(y), parseInt(z), false);
 
-                // Draw the map tile as a 256x256 PNG image and return to client
-                map.bufferSize = 64; // edging for each tile rendered
-                map.add_layer(layer);
-                map.extent = bbox;
-                var im = new mapnik.Image(map.width, map.height);
-                map.render(im, function (err, im) {
-                    if (err) {
-                        throw err;
-                    } else {
-                        res.writeHead(200, {'Content-Type': 'image/png'});
-                        res.end(im.encodeSync('png'));
-                    }
-                });
-            }
-            catch (err) {
-                res.writeHead(500, {'Content-Type': 'text/plain'});
-                res.end(err.message);
-            }
-        }
+    // Create map
+    var map = new mapnik.Map(256, 256, mercator.proj4);
+    map.bufferSize = 64; // amount of edging provided for each tile rendered
+
+    // Draw layers asynchronously to avoid upwards of 100ms blocking
+    map.fromStringAsync(createStyles()).then(function (map) {
+        map.extent = bbox;
+
+        // Initialize static layer
+        var layer = new mapnik.Layer('tile', mercator.proj4);
+        layer.datasource = new mapnik.Datasource(new createPostGISConnectionDetails());
+        layer.styles = ['line'];
+        map.add_layer(layer);
+
+        // Draw single layer as PNG
+        return map;
+    }).then(function (map) {
+        var im = new mapnik.Image(map.width, map.height);
+        return map.renderAsync(im);
+    }).then(function (im) {
+        return im.encodeAsync('png');
+    }).then(function (buffer) {
+        res.set({ 'Content-Type': 'image/png' });
+        res.send(200, buffer);
+    }).error(function (error) {
+        res.json(500, {message: 'error creating image layer'});
     });
-}).listen(port);
+});
+
+module.exports = router;
 ```
 
 Run the script in the background and test to see if it is working:
 
 ```
-[nautilytics]$ nohup node tile_server.js &
+[nautilytics]$ nohup node app.js &
 [nautilytics]$ curl localhost:8000/z/x/y.png
 'no x,y,z provided'
 ```
@@ -247,7 +242,7 @@ didn't play nice with Upstart. We did discover that node on its own integrated v
 
 ```
 [nautilytics]$ cd /etc/init
-[nautilytics]$ sudo nano tile_start.conf
+[nautilytics]$ sudo nano gps_app.conf
 
 /* Begin Text of Upstart Script */
 start on runlevel [2345]
@@ -256,7 +251,7 @@ stop on shutdown
 respawn
 
 script
-    exec sudo -u nobody nodejs /directory/to_node_script/tile_server.js 2>&1 >> /tmp/tile_server.log
+    exec sudo -u nobody nodejs /directory/to_node_script/app.js 2>&1 >> /tmp/app.log
 end script
 /* End Text of Upstart Script */
 ```
@@ -265,6 +260,7 @@ end script
 
 Given the seamless integration between [wax](http://www.mapbox.com/wax/) and mapnik, the frontend was a breeze to set up.
 
+index.html
 ```
 <html>
 <head>
@@ -286,7 +282,7 @@ Given the seamless integration between [wax](http://www.mapbox.com/wax/) and map
 <script>
     var runningTiles = {
         tilejson: '2.0.0',
-        tiles: ['localhost:8000/{z}/{x}/{y}.png'] // make sure port lines up with port in node
+        tiles: ['localhost:8000/v1/tiles/{z}/{x}/{y}.png'] // make sure port lines up with port in node
     };
     var map = new google.maps.Map(document.getElementById('map'), {
         center: new google.maps.LatLng(42.3133735, -71.0571571), // Boston

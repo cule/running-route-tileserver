@@ -18,7 +18,7 @@
 <script>
     var runningTiles = {
         tilejson: '2.0.0',
-        tiles: ['http://localhost:8000/{z}/{x}/{y}.png'] // make sure port lines up with port in node
+        tiles: ['http://localhost:8000/v1/tiles/{z}/{x}/{y}.png'] // make sure port lines up with port in node
     };
     var map = new google.maps.Map(document.getElementById('map'), {
         center: new google.maps.LatLng(51.5072, -0.1275), // London

@@ -1,0 +1,27 @@
+{
+    "name": "running-route-tileserver",
+    "version": "1.0.0",
+    "description": "",
+    "private": false,
+    "main": "server.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:nautilytics/running-route-tileserver.git"
+    },
+    "author": "nautilytics",
+    "bugs": {
+        "url": "https://github.com/nautilytics/running-route-tileserver/issues"
+    },
+    "homepage": "https://github.com/nautilytics/running-route-tileserver",
+    "dependencies": {
+        "express": "^4.1.1",
+        "mapnik": "0.7.x",
+        "newrelic": "1.5.x",
+        "lodash": "~2.4.1",
+        "bluebird": "~1.2.4"
+    }
+}
